@@ -1,0 +1,677 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+package pb;
+
+// 通用响应
+message CommonResponse {
+  int32 code = 1;      // 错误码，0表示成功
+  string message = 2;  // 错误信息
+}
+
+// 登录相关
+service LoginService {
+  // 注册
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}            // 登录
+  rpc Reconnect(ReconnectRequest) returns (LoginResponse) {}    // 重连
+  rpc KickPlayer(KickPlayerRequest) returns (CommonResponse) {} // 踢人
+  rpc GetQueueInfo(QueueInfoRequest) returns (QueueInfoResponse) {} // 获取排队信息
+}
+
+message RegisterRequest{
+  string account = 1; // 账号
+  string nickname = 2; // 昵称
+  string password = 3; // 密码
+  string clientIP = 4; // 客户端IP地址
+}
+
+message RegisterResponse {
+  int32 code = 1;
+  string message = 2;
+}
+message LoginRequest {
+  string account = 1;  // 账号
+  string password = 2; // 密码（加密后）
+  string device_id = 3; // 设备ID
+}
+
+message LoginResponse {
+  int32 code = 1;
+  string message = 2;
+  string gate = 3;
+  string token = 4;          // 会话令牌
+  PlayerInfo player = 5;     // 玩家信息
+  int32 queue_position = 6;  // 排队位置，0表示无需排队
+}
+
+message ReconnectRequest {
+  string token = 1;          // 会话令牌
+  string device_id = 2;      // 设备ID
+}
+
+message KickPlayerRequest {
+  string player_id = 1;      // 玩家ID
+  string reason = 2;         // 踢出原因
+}
+
+message QueueInfoRequest {
+  string token = 1;          // 会话令牌
+}
+
+message QueueInfoResponse {
+  int32 code = 1;
+  string message = 2;
+  int32 position = 3;        // 当前位置
+  int32 total = 4;           // 总排队人数
+  int32 estimated_time = 5;  // 预计等待时间（秒）
+}
+
+// 玩家信息
+message PlayerInfo {
+  string id = 1;             // 玩家ID
+  string nickname = 2;       // 昵称
+  int32 level = 3;           // 等级
+  int32 exp = 4;             // 经验值
+  int32 vip_level = 5;       // VIP等级
+  repeated int32 items = 6;  // 物品ID列表
+}
+
+// 战斗相关
+service BattleService {
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse) {}          // 创建房间
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {}                // 加入房间
+  rpc LeaveRoom(LeaveRoomRequest) returns (CommonResponse) {}                // 离开房间
+  rpc StartBattle(StartBattleRequest) returns (StartBattleResponse) {}       // 开始战斗
+  rpc EndBattle(EndBattleRequest) returns (EndBattleResponse) {}             // 结束战斗
+  rpc ReconnectBattle(ReconnectBattleRequest) returns (BattleStateResponse) {} // 重连战斗
+  rpc SyncBattleAction(SyncBattleActionRequest) returns (CommonResponse) {}  // 同步战斗动作
+}
+
+message CreateRoomRequest {
+  string player_id = 1;      // 玩家ID
+  int32 level_id = 2;        // 关卡ID
+  int32 max_players = 3;     // 最大玩家数
+}
+
+message CreateRoomResponse {
+  int32 code = 1;
+  string message = 2;
+  string room_id = 3;        // 房间ID
+}
+
+message JoinRoomRequest {
+  string player_id = 1;      // 玩家ID
+  string room_id = 2;        // 房间ID
+}
+
+message JoinRoomResponse {
+  int32 code = 1;
+  string message = 2;
+  RoomInfo room = 3;         // 房间信息
+}
+
+message LeaveRoomRequest {
+  string player_id = 1;      // 玩家ID
+  string room_id = 2;        // 房间ID
+}
+
+message StartBattleRequest {
+  string room_id = 1;        // 房间ID
+  string player_id = 2;      // 请求的玩家ID（房主）
+}
+
+message StartBattleResponse {
+  int32 code = 1;
+  string message = 2;
+  string battle_id = 3;      // 战斗ID
+  BattleConfig config = 4;   // 战斗配置
+}
+
+message EndBattleRequest {
+  string battle_id = 1;      // 战斗ID
+  BattleResult result = 2;   // 战斗结果
+}
+
+message EndBattleResponse {
+  int32 code = 1;
+  string message = 2;
+  Rewards rewards = 3;       // 战斗奖励
+}
+
+message ReconnectBattleRequest {
+  string player_id = 1;      // 玩家ID
+  string battle_id = 2;      // 战斗ID
+}
+
+message BattleStateResponse {
+  int32 code = 1;
+  string message = 2;
+  BattleState state = 3;     // 当前战斗状态
+}
+
+message SyncBattleActionRequest {
+  string battle_id = 1;      // 战斗ID
+  string player_id = 2;      // 玩家ID
+  int64 timestamp = 3;       // 时间戳
+  repeated BattleAction actions = 4; // 战斗动作列表
+}
+
+message RoomInfo {
+  string id = 1;             // 房间ID
+  int32 level_id = 2;        // 关卡ID
+  int32 max_players = 3;     // 最大玩家数
+  repeated RoomPlayer players = 4; // 玩家列表
+  string owner_id = 5;       // 房主ID
+  int32 status = 6;          // 房间状态：0等待中，1战斗中
+}
+
+message RoomPlayer {
+  string id = 1;             // 玩家ID
+  string nickname = 2;       // 昵称
+  int32 level = 3;           // 等级
+  bool is_ready = 4;         // 是否准备
+}
+
+message BattleConfig {
+  int32 level_id = 1;        // 关卡ID
+  repeated BattlePlayer players = 2; // 战斗玩家列表
+  int32 time_limit = 3;      // 时间限制（秒）
+  int32 boss_hp = 4;         // BOSS初始血量
+}
+
+message BattlePlayer {
+  string id = 1;             // 玩家ID
+  int32 hp = 2;              // 血量
+  int32 mp = 3;              // 魔法值
+  int32 damage = 4;          // 攻击力
+  int32 defense = 5;         // 防御力
+  Position position = 6;     // 初始位置
+}
+
+message Position {
+  float x = 1;               // X坐标
+  float y = 2;               // Y坐标
+  float z = 3;               // Z坐标
+}
+
+message BattleAction {
+  int32 type = 1;            // 动作类型：1移动，2攻击，3技能，4拾取
+  Position position = 2;     // 位置（移动时）
+  string target_id = 3;      // 目标ID（攻击时）
+  int32 skill_id = 4;        // 技能ID（技能时）
+  int32 item_id = 5;         // 物品ID（拾取时）
+  int64 timestamp = 6;       // 时间戳
+}
+
+message BattleResult {
+  bool is_win = 1;           // 是否胜利
+  int32 boss_hp = 2;         // BOSS剩余血量
+  repeated PlayerBattleStats player_stats = 3; // 玩家战斗统计
+}
+
+message PlayerBattleStats {
+  string player_id = 1;      // 玩家ID
+  int32 damage_dealt = 2;    // 造成伤害
+  int32 damage_taken = 3;    // 承受伤害
+  int32 kills = 4;           // 击杀数
+  int32 deaths = 5;          // 死亡数
+  int32 heals = 6;           // 治疗量
+  int32 revive_count = 7;    // 被复活次数
+}
+
+message BattleState {
+  string battle_id = 1;      // 战斗ID
+  int32 status = 2;          // 状态：1进行中，2已结束
+  int64 start_time = 3;      // 开始时间
+  int64 current_time = 4;    // 当前时间
+  int32 boss_hp = 5;         // BOSS当前血量
+  repeated LivePlayerState players = 6; // 存活玩家状态
+}
+
+message LivePlayerState {
+  string player_id = 1;      // 玩家ID
+  int32 hp = 2;              // 当前血量
+  int32 mp = 3;              // 当前魔法值
+  Position position = 4;     // 当前位置
+  int32 state = 5;           // 状态：1存活，2死亡
+  int64 respawn_time = 6;    // 复活时间
+}
+
+message Rewards {
+  int32 exp = 1;             // 经验奖励
+  int32 coins = 2;           // 金币奖励
+  repeated RewardItem items = 3; // 物品奖励
+}
+
+message RewardItem {
+  int32 item_id = 1;         // 物品ID
+  int32 count = 2;           // 数量
+}
+
+// 背包相关
+service BagService {
+  rpc GetBagInfo(GetBagRequest) returns (BagResponse) {}          // 获取背包信息
+  rpc UseItem(UseItemRequest) returns (UseItemResponse) {}        // 使用物品
+  rpc DropItem(DropItemRequest) returns (CommonResponse) {}       // 丢弃物品
+  rpc CombineItems(CombineItemsRequest) returns (CombineItemsResponse) {} // 合成物品
+}
+
+message GetBagRequest {
+  string player_id = 1;      // 玩家ID
+}
+
+message BagResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated BagItem items = 3; // 背包物品列表
+  int32 capacity = 4;        // 背包容量
+}
+
+message BagItem {
+  string id = 1;             // 物品实例ID
+  int32 item_id = 2;         // 物品ID
+  int32 count = 3;           // 数量
+  int64 create_time = 4;     // 获得时间
+  map<string, string> attrs = 5; // 物品属性
+}
+
+message UseItemRequest {
+  string player_id = 1;      // 玩家ID
+  string item_instance_id = 2; // 物品实例ID
+  int32 count = 3;           // 使用数量
+}
+
+message UseItemResponse {
+  int32 code = 1;
+  string message = 2;
+  map<string, int32> effects = 3; // 效果，如HP+100
+}
+
+message DropItemRequest {
+  string player_id = 1;      // 玩家ID
+  string item_instance_id = 2; // 物品实例ID
+  int32 count = 3;           // 丢弃数量
+}
+
+message CombineItemsRequest {
+  string player_id = 1;      // 玩家ID
+  repeated string item_instance_ids = 2; // 用于合成的物品实例ID列表
+}
+
+message CombineItemsResponse {
+  int32 code = 1;
+  string message = 2;
+  BagItem result_item = 3;   // 合成结果
+}
+
+// 邮箱相关
+service MailService {
+  rpc GetMailList(GetMailListRequest) returns (GetMailListResponse) {} // 获取邮件列表
+  rpc GetMailDetail(GetMailDetailRequest) returns (GetMailDetailResponse) {} // 获取邮件详情
+  rpc ReceiveMailAttachment(ReceiveMailAttachmentRequest) returns (ReceiveMailAttachmentResponse) {} // 领取附件
+  rpc DeleteMail(DeleteMailRequest) returns (CommonResponse) {} // 删除邮件
+}
+
+message GetMailListRequest {
+  string player_id = 1;      // 玩家ID
+  int32 page = 2;            // 页码
+  int32 page_size = 3;       // 每页数量
+}
+
+message GetMailListResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated MailBrief mails = 3; // 邮件简要列表
+  int32 total = 4;           // 总数量
+}
+
+message MailBrief {
+  string mail_id = 1;        // 邮件ID
+  string title = 2;          // 标题
+  int64 send_time = 3;       // 发送时间
+  bool has_attachment = 4;   // 是否有附件
+  bool is_read = 5;          // 是否已读
+  bool is_received = 6;      // 是否已领取附件
+}
+
+message GetMailDetailRequest {
+  string player_id = 1;      // 玩家ID
+  string mail_id = 2;        // 邮件ID
+}
+
+message GetMailDetailResponse {
+  int32 code = 1;
+  string message = 2;
+  Mail mail = 3;             // 邮件详情
+}
+
+message Mail {
+  string id = 1;             // 邮件ID
+  string title = 2;          // 标题
+  string content = 3;        // 内容
+  int64 send_time = 4;       // 发送时间
+  int64 expire_time = 5;     // 过期时间
+  bool is_read = 6;          // 是否已读
+  bool is_received = 7;      // 是否已领取附件
+  repeated MailAttachment attachments = 8; // 附件列表
+}
+
+message MailAttachment {
+  int32 type = 1;            // 附件类型：1物品，2金币，3钻石
+  int32 item_id = 2;         // 物品ID
+  int32 count = 3;           // 数量
+}
+
+message ReceiveMailAttachmentRequest {
+  string player_id = 1;      // 玩家ID
+  string mail_id = 2;        // 邮件ID
+}
+
+message ReceiveMailAttachmentResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated MailAttachment attachments = 3; // 领取的附件
+}
+
+message DeleteMailRequest {
+  string player_id = 1;      // 玩家ID
+  repeated string mail_ids = 2; // 邮件ID列表
+}
+
+// 任务相关
+service TaskService {
+  rpc GetTaskList(GetTaskListRequest) returns (GetTaskListResponse) {} // 获取任务列表
+  rpc GetTaskDetail(GetTaskDetailRequest) returns (GetTaskDetailResponse) {} // 获取任务详情
+  rpc AcceptTask(AcceptTaskRequest) returns (CommonResponse) {} // 接受任务
+  rpc SubmitTask(SubmitTaskRequest) returns (SubmitTaskResponse) {} // 提交任务
+  rpc GiveUpTask(GiveUpTaskRequest) returns (CommonResponse) {} // 放弃任务
+}
+
+message GetTaskListRequest {
+  string player_id = 1;      // 玩家ID
+  int32 task_type = 2;       // 任务类型：0全部，1主线，2支线，3日常，4成就
+}
+
+message GetTaskListResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated TaskBrief tasks = 3; // 任务简要列表
+}
+
+message TaskBrief {
+  int32 task_id = 1;         // 任务ID
+  int32 type = 2;            // 任务类型
+  string name = 3;           // 任务名称
+  int32 status = 4;          // 任务状态：1未接取，2进行中，3已完成，4已提交
+  int32 progress = 5;        // 进度
+  int32 target = 6;          // 目标值
+}
+
+message GetTaskDetailRequest {
+  string player_id = 1;      // 玩家ID
+  int32 task_id = 2;         // 任务ID
+}
+
+message GetTaskDetailResponse {
+  int32 code = 1;
+  string message = 2;
+  TaskDetail task = 3;       // 任务详情
+}
+
+message TaskDetail {
+  int32 id = 1;              // 任务ID
+  int32 type = 2;            // 任务类型
+  string name = 3;           // 任务名称
+  string description = 4;    // 任务描述
+  int32 status = 5;          // 任务状态
+  map<string, int32> targets = 6; // 目标条件
+  map<string, int32> progress = 7; // 当前进度
+  repeated TaskReward rewards = 8; // 奖励列表
+  int32 accept_level = 9;    // 接取等级
+  int32 next_task_id = 10;   // 后续任务ID
+}
+
+message TaskReward {
+  int32 type = 1;            // 奖励类型：1经验，2金币，3物品
+  int32 item_id = 2;         // 物品ID
+  int32 count = 3;           // 数量
+}
+
+message AcceptTaskRequest {
+  string player_id = 1;      // 玩家ID
+  int32 task_id = 2;         // 任务ID
+}
+
+message SubmitTaskRequest {
+  string player_id = 1;      // 玩家ID
+  int32 task_id = 2;         // 任务ID
+}
+
+message SubmitTaskResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated TaskReward rewards = 3; // 获得的奖励
+}
+
+message GiveUpTaskRequest {
+  string player_id = 1;      // 玩家ID
+  int32 task_id = 2;         // 任务ID
+}
+
+// 商场相关
+service ShopService {
+  rpc GetShopList(GetShopListRequest) returns (GetShopListResponse) {} // 获取商店列表
+  rpc BuyItem(BuyItemRequest) returns (BuyItemResponse) {} // 购买物品
+  rpc GetDiscountInfo(GetDiscountInfoRequest) returns (GetDiscountInfoResponse) {} // 获取折扣信息
+}
+
+message GetShopListRequest {
+  string player_id = 1;      // 玩家ID
+  int32 shop_type = 2;       // 商店类型：1普通，2限时，3活动
+}
+
+message GetShopListResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated ShopItem items = 3; // 商店物品列表
+}
+
+message ShopItem {
+  int32 item_id = 1;         // 物品ID
+  int32 original_price = 2;  // 原价
+  int32 current_price = 3;   // 当前价格
+  int32 currency_type = 4;   // 货币类型：1金币，2钻石
+  int32 stock = 5;           // 库存
+  int32 max_buy_count = 6;   // 最大购买数量
+  int32 bought_count = 7;    // 已购买数量
+  int64 expire_time = 8;     // 过期时间
+  bool is_discount = 9;      // 是否折扣
+  float discount_rate = 10;  // 折扣率
+}
+
+message BuyItemRequest {
+  string player_id = 1;      // 玩家ID
+  int32 item_id = 2;         // 物品ID
+  int32 count = 3;           // 购买数量
+}
+
+message BuyItemResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated BagItem bought_items = 3; // 购买的物品
+  int32 spent_currency = 4;  // 花费的货币
+  int32 currency_type = 5;   // 货币类型
+}
+
+message GetDiscountInfoRequest {
+  string player_id = 1;      // 玩家ID
+}
+
+message GetDiscountInfoResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated DiscountInfo discounts = 3; // 折扣信息列表
+}
+
+message DiscountInfo {
+  int32 shop_type = 1;       // 商店类型
+  float discount_rate = 2;   // 折扣率
+  int64 start_time = 3;      // 开始时间
+  int64 end_time = 4;        // 结束时间
+}
+
+// 战绩相关
+service RecordService {
+  rpc GetPlayerRecords(GetPlayerRecordsRequest) returns (GetPlayerRecordsResponse) {} // 获取玩家战绩
+  rpc GetBattleDetail(GetBattleDetailRequest) returns (GetBattleDetailResponse) {} // 获取战斗详情
+}
+
+message GetPlayerRecordsRequest {
+  string player_id = 1;      // 玩家ID
+  int32 page = 2;            // 页码
+  int32 page_size = 3;       // 每页数量
+}
+
+message GetPlayerRecordsResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated BattleRecord records = 3; // 战绩列表
+  int32 total = 4;           // 总数量
+  PlayerStats stats = 5;     // 玩家统计
+}
+
+message BattleRecord {
+  string battle_id = 1;      // 战斗ID
+  int32 level_id = 2;        // 关卡ID
+  bool is_win = 3;           // 是否胜利
+  int64 start_time = 4;      // 开始时间
+  int64 duration = 5;        // 持续时间
+  int32 damage_dealt = 6;    // 造成伤害
+  int32 ranking = 7;         // 排名
+}
+
+message GetBattleDetailRequest {
+  string player_id = 1;      // 玩家ID
+  string battle_id = 2;      // 战斗ID
+}
+
+message GetBattleDetailResponse {
+  int32 code = 1;
+  string message = 2;
+  BattleDetail detail = 3;   // 战斗详情
+}
+
+message BattleDetail {
+  string battle_id = 1;      // 战斗ID
+  int32 level_id = 2;        // 关卡ID
+  bool is_win = 3;           // 是否胜利
+  int64 start_time = 4;      // 开始时间
+  int64 end_time = 5;        // 结束时间
+  repeated DetailedPlayerStats players = 6; // 玩家详细统计
+  BossStats boss = 7;        // BOSS统计
+}
+
+message DetailedPlayerStats {
+  string player_id = 1;      // 玩家ID
+  string nickname = 2;       // 昵称
+  int32 level = 3;           // 等级
+  int32 damage_dealt = 4;    // 造成伤害
+  int32 damage_taken = 5;    // 承受伤害
+  int32 kills = 6;           // 击杀数
+  int32 deaths = 7;          // 死亡数
+  int32 heals = 8;           // 治疗量
+  int32 revive_count = 9;    // 被复活次数
+  int32 hit_rate = 10;       // 命中率
+  int32 critical_rate = 11;  // 暴击率
+}
+
+message PlayerStats {
+  int32 total_battles = 1;   // 总战斗场次
+  int32 wins = 2;            // 胜利场次
+  int32 losses = 3;          // 失败场次
+  float win_rate = 4;        // 胜率
+  int32 total_damage = 5;    // 总伤害
+  int32 average_damage = 6;  // 平均伤害
+  int32 total_kills = 7;     // 总击杀
+  int32 total_deaths = 8;    // 总死亡
+  float kd_ratio = 9;        // K/D比率
+}
+
+message BossStats {
+  int32 boss_id = 1;         // BOSS ID
+  string boss_name = 2;      // BOSS名称
+  int32 total_damage_received = 3; // 总承受伤害
+  int32 damage_per_second = 4; // 每秒伤害
+  repeated SkillUsage skills = 5; // 技能使用情况
+}
+
+message SkillUsage {
+  int32 skill_id = 1;        // 技能ID
+  int32 usage_count = 2;     // 使用次数
+  int32 hit_count = 3;       // 命中次数
+  int32 total_damage = 4;    // 总伤害
+}
+
+// 排行榜相关
+service RankingService {
+  rpc GetRankingList(GetRankingListRequest) returns (GetRankingListResponse) {} // 获取排行榜
+  rpc GetPlayerRank(GetPlayerRankRequest) returns (GetPlayerRankResponse) {} // 获取玩家排名
+}
+
+message GetRankingListRequest {
+  string player_id = 1;      // 玩家ID
+  int32 ranking_type = 2;    // 排行榜类型：1等级，2战斗力，3总伤害，4胜率
+  int32 page = 3;            // 页码
+  int32 page_size = 4;       // 每页数量
+}
+
+message GetRankingListResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated RankingItem items = 3; // 排行榜项列表
+  int32 total = 4;           // 总数量
+  RankingItem player_item = 5; // 玩家自己的排名信息
+}
+
+message RankingItem {
+  int32 rank = 1;            // 排名
+  string player_id = 2;      // 玩家ID
+  string nickname = 3;       // 昵称
+  int32 level = 4;           // 等级
+  int32 score = 5;           // 分数/数值
+  string avatar = 6;         // 头像
+}
+
+message GetPlayerRankRequest {
+  string player_id = 1;      // 玩家ID
+  int32 ranking_type = 2;    // 排行榜类型
+}
+
+message GetPlayerRankResponse {
+  int32 code = 1;
+  string message = 2;
+  RankingItem item = 3;      // 排名信息
+  int32 total_players = 4;   // 总玩家数
+}
+
+// 战斗数据处理相关（内部服务）
+service BattleDataProcessService {
+  rpc ProcessBattleData(ProcessBattleDataRequest) returns (CommonResponse) {} // 处理战斗数据
+}
+
+message ProcessBattleDataRequest {
+  string battle_id = 1;      // 战斗ID
+  BattleResult result = 2;   // 战斗结果
+  repeated BattleActionLog action_logs = 3; // 动作日志
+  int64 process_time = 4;    // 处理时间
+}
+
+message BattleActionLog {
+  string player_id = 1;      // 玩家ID
+  int32 action_type = 2;     // 动作类型
+  int64 timestamp = 3;       // 时间戳
+  string target_id = 4;      // 目标ID
+  int32 damage = 5;          // 伤害值
+}

@@ -1,0 +1,33 @@
+# 数据处理服务配置
+job:
+  # 服务ID
+  id: "job-2"
+  # 数据处理间隔(秒)
+  process_interval: 5
+
+# 日志配置
+log:
+  # 日志级别: debug, info, warn, error
+  level: "info"
+  # 日志文件路径
+  file_path: "./logs/job-2.log"
+  # 日志文件大小限制(MB)
+  max_size: 100
+  # 日志文件保留天数
+  max_age: 7
+
+# MongoDB配置
+mongodb:
+  # MongoDB连接地址
+  uri: "mongodb://ghadmin:mongoghpw@10.100.0.9:27017,10.100.0.11:27017/tps_game"
+  # 数据库名称
+  dbname: "tps_game"
+
+# Kafka配置
+kafka:
+  # Kafka地址
+  addrs: ["127.0.0.1:9092"]
+  # 战斗日志主题
+  battle_topic: "battle_logs"
+  # 消息格式版本
+  version: "2.8.0"
