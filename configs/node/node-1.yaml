@@ -1,0 +1,66 @@
+# 节点配置
+server:
+  # 最大玩家数
+  max_players: 100
+  # 战斗房间配置
+  battle:
+    # 最大房间数
+    max_rooms: 50
+    # 每个房间最大玩家数
+    max_players_per_room: 5
+
+# 集群配置
+cluster:
+  # 集群ID
+  id: "node-1"
+  # 集群名称
+  name: "node"
+  # 传输服务器配置
+  transport:
+    # 监听地址
+    addr: "127.0.0.1:9011"
+
+# 服务注册发现配置
+registry:
+  # 类型: etcd
+  type: "etcd"
+  # etcd地址
+  addrs: ["10.100.0.3:2379"]
+
+# 日志配置
+log:
+  # 日志级别: debug, info, warn, error
+  level: "info"
+  # 日志文件路径
+  file_path: "./logs/node-1.log"
+  # 日志文件大小限制(MB)
+  max_size: 100
+  # 日志文件保留天数
+  max_age: 7
+
+# Redis缓存配置
+redis:
+  # Redis地址
+  addrs: ["10.100.0.14:6379"]
+  # 数据库编号
+  db: 0
+  # 密码
+  password: ""
+  # 连接池大小
+  pool_size: 100
+
+# MongoDB配置
+mongodb:
+  # MongoDB连接地址
+  uri: "mongodb://ghadmin:mongoghpw@10.100.0.9:27017,10.100.0.11:27017/tps_game"
+  # 数据库名称
+  dbname: "tps_game"
+
+# Kafka配置
+kafka:
+  # Kafka地址
+  addrs: ["127.0.0.1:9092"]
+  # 战斗日志主题
+  battle_topic: "battle_logs"
+  # 消息格式版本
+  version: "2.8.0"
